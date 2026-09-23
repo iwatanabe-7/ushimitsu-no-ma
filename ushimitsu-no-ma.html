@@ -152,10 +152,26 @@
     font-weight:700; font-size:1.3rem; letter-spacing:.14em; margin:0;
     color: var(--ink);
   }
-  .game-header .clock{
+  .header-controls{
+    display:flex; align-items:center; gap:12px;
+  }
+  .mute-btn{ padding:8px 16px; font-size:.72rem; }
+  .timer{
     font-family: var(--font-ui);
-    color: var(--ink-faint);
-    font-size:.78rem; letter-spacing:.14em;
+    color: var(--ink-dim);
+    font-size:1.05rem; letter-spacing:.06em;
+    border:1px solid var(--line);
+    padding:7px 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer.critical{
+    color: var(--accent-bright);
+    border-color: var(--accent-bright);
+    animation: timerPulse 1s ease-in-out infinite;
+  }
+  @keyframes timerPulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:.4; }
   }
 
   .layout{
@@ -303,6 +319,7 @@
     font-family: var(--font-body);
     color: var(--ink-dim); line-height:2; max-width:38ch; margin:0 auto;
     font-size:1rem;
+    white-space: pre-line;
   }
 
   .glitch{ animation: glitch .18s linear 2; }
@@ -316,12 +333,71 @@
     .glitch, .dial.shake{ animation:none; }
   }
 
+  .jumpscare{
+    position:fixed; inset:0; z-index:90;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+  }
+  .jumpscare.show{ animation: scareFlash 460ms ease-out; }
+  @keyframes scareFlash{
+    0%{ opacity:0; background: rgba(0,0,0,0); }
+    10%{ opacity:1; background: rgba(0,0,0,.88); }
+    72%{ opacity:1; background: rgba(0,0,0,.88); }
+    100%{ opacity:0; background: rgba(0,0,0,0); }
+  }
+  @keyframes scareFade{
+    0%{ opacity:0; }
+    30%{ opacity:.9; }
+    100%{ opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .jumpscare.show{ animation: scareFade 500ms ease-out; }
+  }
+  .ghost{ position:relative; width:150px; height:240px; filter: drop-shadow(0 0 36px rgba(230,225,215,.3)); }
+  .ghost-body{
+    position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:140px; height:178px;
+    background: radial-gradient(ellipse at 50% 12%, #efe9dd 0%, #cfc7b8 55%, rgba(207,199,184,0) 100%);
+    clip-path: polygon(50% 0%, 85% 15%, 95% 55%, 78% 100%, 22% 100%, 5% 55%, 15% 15%);
+    opacity:.92;
+    z-index:1;
+  }
+  .ghost-head{
+    position:absolute; left:50%; top:0; transform:translateX(-50%);
+    width:72px; height:72px; border-radius:50%;
+    background: radial-gradient(circle at 50% 38%, #f4efe4, #d8d0bf 80%);
+    z-index:1;
+  }
+  .ghost-eye{
+    position:absolute; top:34px; width:9px; height:15px; border-radius:50%;
+    background: #14100d;
+  }
+  .ghost-eye.left{ left:20px; }
+  .ghost-eye.right{ right:20px; }
+  .ghost-hair{
+    position:absolute; left:50%; top:-4px; transform:translateX(-50%);
+    width:88px; height:54px; border-radius:50% 50% 40% 40%;
+    background: #0d0a09;
+    z-index:0;
+  }
+
   ::-webkit-scrollbar{ width:8px; }
   ::-webkit-scrollbar-track{ background:transparent; }
   ::-webkit-scrollbar-thumb{ background: var(--line); }
 </style>
 
 <div class="lamp-glow"></div>
+
+<div class="jumpscare" id="jumpscare" aria-hidden="true">
+  <div class="ghost">
+    <div class="ghost-hair"></div>
+    <div class="ghost-head">
+      <div class="ghost-eye left"></div>
+      <div class="ghost-eye right"></div>
+    </div>
+    <div class="ghost-body"></div>
+  </div>
+</div>
 
 <section id="screen-title">
   <div class="title-mark">怪異譚</div>
@@ -334,7 +410,10 @@
   <div class="stage">
     <div class="game-header">
       <h2>丑三つの間</h2>
-      <span class="clock" id="clock-text">午前二時三十四分</span>
+      <div class="header-controls">
+        <button class="btn small mute-btn" id="btn-mute" type="button" aria-label="音を切り替える">音:ON</button>
+        <div class="timer" id="timer-text">1:00</div>
+      </div>
     </div>
 
     <div class="layout">
@@ -389,12 +468,16 @@
     '線香の匂いが、ふっと濃くなった。'
   ];
 
+  const TIME_LIMIT = 60;
+
   const state = {
     inventory: [],
     flags: { closetOpened:false, dollPulled:false, altarOpened:false, tatamiChecked:false, scrollChecked:false, mirrorSeen:false },
     digits: { d1:null, d2:null, d3:null },
     dial: [0,0,0],
-    active: null
+    active: null,
+    timeLeft: TIME_LIMIT,
+    timerId: null
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -403,6 +486,136 @@
   const actions = $('#actions');
   const inventoryEl = $('#inventory');
   const panelTitle = $('#panel-title');
+
+  let audioCtx = null;
+  let masterGain = null;
+  let audioMuted = false;
+
+  function initAudio(){
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.55;
+    masterGain.connect(audioCtx.destination);
+    startBGM();
+  }
+
+  function startBGM(){
+    const bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = 0;
+    bgmGain.connect(masterGain);
+
+    [55, 82.5, 110].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = i === 1 ? 'sine' : 'triangle';
+      osc.frequency.value = freq;
+      const gain = audioCtx.createGain();
+      gain.gain.value = i === 0 ? 0.5 : 0.22;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 320;
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(bgmGain);
+      osc.start();
+    });
+
+    const lfo = audioCtx.createOscillator();
+    lfo.frequency.value = 0.06;
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 0.04;
+    lfo.connect(lfoGain);
+    lfoGain.connect(bgmGain.gain);
+    lfo.start();
+
+    bgmGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    bgmGain.gain.linearRampToValueAtTime(0.09, audioCtx.currentTime + 3);
+  }
+
+  function playSting(){
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.22, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+    g.connect(masterGain);
+
+    [220, 233, 415].forEach((freq) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc.connect(g);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    });
+  }
+
+  function toggleMute(){
+    audioMuted = !audioMuted;
+    if (masterGain && audioCtx) {
+      masterGain.gain.setTargetAtTime(audioMuted ? 0 : 0.55, audioCtx.currentTime, 0.05);
+    }
+    $('#btn-mute').textContent = audioMuted ? '音:OFF' : '音:ON';
+  }
+
+  function jumpscare(){
+    const el = $('#jumpscare');
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    document.body.classList.add('glitch');
+    playSting();
+    setTimeout(() => {
+      el.classList.remove('show');
+      document.body.classList.remove('glitch');
+    }, 460);
+  }
+
+  function formatTime(sec){
+    const clamped = Math.max(sec, 0);
+    const m = Math.floor(clamped / 60);
+    const s = clamped % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function startTimer(){
+    const timerEl = $('#timer-text');
+    state.timeLeft = TIME_LIMIT;
+    timerEl.textContent = formatTime(state.timeLeft);
+    timerEl.classList.remove('critical');
+    clearInterval(state.timerId);
+    state.timerId = setInterval(() => {
+      state.timeLeft -= 1;
+      timerEl.textContent = formatTime(state.timeLeft);
+      if (state.timeLeft === 10){
+        timerEl.classList.add('critical');
+        jumpscare();
+      }
+      if (state.timeLeft <= 0){
+        clearInterval(state.timerId);
+        gameOver();
+      }
+    }, 1000);
+  }
+
+  function stopTimer(){
+    clearInterval(state.timerId);
+  }
+
+  function gameOver(){
+    stopTimer();
+    grid.style.pointerEvents = 'none';
+    clearActions();
+    addLine('刻限が来た。襖はまだ開かない。', 'flavor');
+    jumpscare();
+    setTimeout(() => {
+      $('#screen-game').classList.remove('active');
+      $('#end-title').textContent = 'ゲームオーバー';
+      $('#end-text').textContent = '時間切れだった。襖の向こうで、何かが静かに笑っていた気配がした。';
+      $('#screen-end').classList.add('active');
+    }, 700);
+  }
 
   function buildGrid(){
     grid.innerHTML = '';
@@ -550,8 +763,7 @@
       state.flags.mirrorSeen = true;
       addLine('古い鏡台。鏡は斜めにひびが入り、埃をかぶっている。');
       addAction('鏡を覗き込む', () => {
-        document.body.classList.add('glitch');
-        setTimeout(() => document.body.classList.remove('glitch'), 380);
+        jumpscare();
         addLine('鏡を覗き込むと、一瞬だけ――自分ではない誰かが、こちらを見ていた気がした。', 'flavor');
         clearActions();
       });
@@ -620,11 +832,14 @@
   }
 
   function goToEnding(){
+    stopTimer();
+    grid.style.pointerEvents = 'none';
     addLine('ダイヤルが小さく鳴り、襖がすっと開いた。');
     setTimeout(() => {
       $('#screen-game').classList.remove('active');
       const endScreen = $('#screen-end');
       const endText = $('#end-text');
+      $('#end-title').textContent = '脱出成功';
       let text = '外は静まり返った廊下だった。振り返らずに、あなたはその部屋を後にした。';
       if (state.flags.mirrorSeen){
         text += '\n\n――ただ、鏡の中で笑っていたあの顔だけは、まだ脳裏から離れない。';
@@ -638,26 +853,38 @@
     if (!$('#screen-game').classList.contains('active')) return;
     const line = AMBIENT[Math.floor(Math.random() * AMBIENT.length)];
     addLine(line, 'flavor');
+    if (Math.random() < 0.2) jumpscare();
   }
 
   function resetState(){
+    stopTimer();
     state.inventory = [];
     state.flags = { closetOpened:false, dollPulled:false, altarOpened:false, tatamiChecked:false, scrollChecked:false, mirrorSeen:false };
     state.digits = { d1:null, d2:null, d3:null };
     state.dial = [0,0,0];
     state.active = null;
+    state.timeLeft = TIME_LIMIT;
     log.innerHTML = '';
     inventoryEl.innerHTML = '';
     clearActions();
     panelTitle.textContent = '部屋のようす';
+    grid.style.pointerEvents = '';
+    const timerEl = $('#timer-text');
+    timerEl.textContent = formatTime(TIME_LIMIT);
+    timerEl.classList.remove('critical');
   }
 
   $('#btn-start').addEventListener('click', () => {
     $('#screen-title').style.display = 'none';
     $('#screen-game').classList.add('active');
+    initAudio();
+    startTimer();
     addLine('目を開けると、そこは知らない和室だった。畳の匂いと、線香の残り香がする。');
     addLine('出口は、恐らくあの襖だけだ。');
+    addLine('一分以内に、あの部屋を出なければならない気がする。', 'flavor');
   });
+
+  $('#btn-mute').addEventListener('click', toggleMute);
 
   $('#btn-restart').addEventListener('click', () => {
     resetState();
@@ -666,6 +893,6 @@
   });
 
   buildGrid();
-  setInterval(ambientTick, 32000);
+  setInterval(ambientTick, 12000);
 })();
 </script>
