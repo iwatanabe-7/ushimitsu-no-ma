@@ -1,5 +1,8 @@
 # 丑三つの間
 
+<img width="1591" height="812" alt="スクリーンショット 2026-09-23 22 30 43" src="https://github.com/user-attachments/assets/1088508a-82af-4127-a746-7836b417dea5" />
+
+
 深夜、見知らぬ和室に閉じ込められるところから始まる、日本語の短編ホラー脱出ゲームです。ブラウザだけで遊べます。
 
 **▶ 遊ぶ: https://iwatanabe-7.github.io/ushimitsu-no-ma/**
