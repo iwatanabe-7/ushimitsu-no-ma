@@ -1,4 +1,6 @@
 <title>丑三つの間</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;800&family=Noto+Serif+JP:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
@@ -79,6 +81,7 @@
   /* ---------- Title screen ---------- */
   #screen-title{
     min-height:100vh;
+    min-height:100dvh;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center;
     gap:28px;
@@ -123,6 +126,7 @@
     padding: 14px 40px;
     cursor:pointer;
     position:relative;
+    touch-action:manipulation;
     transition: border-color .2s ease, transform .15s ease, background .2s ease;
   }
   .btn::before{
@@ -142,7 +146,7 @@
   #screen-game.active{ display:block; }
 
   .game-header{
-    display:flex; align-items:baseline; justify-content:space-between;
+    display:flex; align-items:center; justify-content:space-between;
     border-bottom:1px solid var(--line);
     padding-bottom:14px; margin-bottom:28px;
     gap:12px; flex-wrap:wrap;
@@ -174,6 +178,12 @@
     0%,100%{ opacity:1; }
     50%{ opacity:.4; }
   }
+  @media (max-width: 400px){
+    .game-header h2{ font-size:1.1rem; letter-spacing:.08em; }
+    .header-controls{ gap:8px; }
+    .timer{ font-size:.76rem; padding:6px 10px; }
+    .mute-btn{ padding:8px 12px; font-size:.68rem; }
+  }
 
   .layout{
     display:grid;
@@ -203,6 +213,7 @@
     display:flex; flex-direction:column; align-items:center; gap:10px;
     cursor:pointer;
     text-align:center;
+    touch-action:manipulation;
     transition: border-color .2s ease, background .2s ease, color .2s ease;
     min-height:118px;
   }
@@ -275,8 +286,9 @@
 
   /* dial lock */
   .dial{
-    display:flex; align-items:center; justify-content:center; gap:18px;
+    display:flex; align-items:center; justify-content:center; gap:14px;
     margin: 6px 0 4px;
+    flex-wrap:wrap;
   }
   .dial.shake{ animation: shake .4s ease; }
   @keyframes shake{
@@ -288,9 +300,10 @@
   }
   .dial-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
   .dial-btn{
-    width:34px; height:28px;
+    width:44px; height:40px;
     background:var(--bg-card); border:1px solid var(--line); color:var(--ink-dim);
-    cursor:pointer; font-family:var(--font-ui); font-size:.85rem;
+    cursor:pointer; font-family:var(--font-ui); font-size:.9rem;
+    touch-action:manipulation;
   }
   .dial-btn:hover{ color:var(--ink); border-color:var(--gold); }
   .dial-digit{
@@ -304,6 +317,7 @@
   #screen-end{
     display:none;
     min-height:100vh;
+    min-height:100dvh;
     align-items:center; justify-content:center; text-align:center;
     flex-direction:column; gap:26px;
     padding:40px 20px;
@@ -1352,6 +1366,7 @@ PJNIYwfn6nr+VJuLtg1IeI2I/hBx+VFrjbsQMCpXB7YqJkxyv509ycA0jM2GbPP+JpAj/9k=" alt=""
   const actions = $('#actions');
   const inventoryEl = $('#inventory');
   const panelTitle = $('#panel-title');
+  const panelEl = document.querySelector('.panel');
 
   let audioCtx = null;
   let masterGain = null;
@@ -1536,6 +1551,9 @@ PJNIYwfn6nr+VJuLtg1IeI2I/hBx+VFrjbsQMCpXB7YqJkxyv509ycA0jM2GbPP+JpAj/9k=" alt=""
     setActiveCard(h.id);
     clearActions();
     panelTitle.textContent = h.label;
+    if (window.innerWidth <= 780){
+      panelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     switch (h.id) {
       case 'scroll': return handleScroll();
