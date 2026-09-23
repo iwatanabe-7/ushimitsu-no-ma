@@ -1,0 +1,671 @@
+<title>丑三つの間</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;800&family=Noto+Serif+JP:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg: #0b0908;
+    --bg-panel: #15100e;
+    --bg-card: #1e1613;
+    --bg-card-hover: #271c17;
+    --ink: #ece3d4;
+    --ink-dim: #9c8d7c;
+    --ink-faint: #6b5f52;
+    --line: #362a21;
+    --line-soft: #241b16;
+    --accent: #8a2620;
+    --accent-bright: #c1443a;
+    --gold: #a6823f;
+    --shadow: rgba(0,0,0,.55);
+    --font-display: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+    --font-body: "Noto Serif JP", "Hiragino Mincho ProN", serif;
+    --font-ui: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* film grain */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+    opacity:.5;
+    mix-blend-mode:overlay;
+    pointer-events:none;
+    z-index:50;
+  }
+  /* vignette */
+  body::after{
+    content:"";
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse at 50% 40%, transparent 35%, rgba(0,0,0,.7) 100%);
+    pointer-events:none;
+    z-index:40;
+  }
+
+  .lamp-glow{
+    position:fixed; top:-10%; left:50%; transform:translateX(-50%);
+    width:60vw; height:60vw; max-width:640px; max-height:640px;
+    background: radial-gradient(circle, rgba(166,130,63,.16) 0%, rgba(166,130,63,.05) 45%, transparent 70%);
+    pointer-events:none; z-index:1;
+    animation: flicker 5.5s ease-in-out infinite;
+  }
+  @keyframes flicker{
+    0%,100%{ opacity:1; }
+    38%{ opacity:.78; }
+    42%{ opacity:1; }
+    63%{ opacity:.9; }
+    66%{ opacity:1; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .lamp-glow{ animation:none; }
+  }
+
+  .stage{
+    position:relative; z-index:2;
+    max-width:1040px;
+    margin:0 auto;
+    padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 32px) 64px;
+  }
+
+  /* ---------- Title screen ---------- */
+  #screen-title{
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    gap:28px;
+    padding: 40px 20px;
+    position:relative; z-index:2;
+  }
+  .title-mark{
+    font-family: var(--font-display);
+    font-weight:400;
+    color: var(--ink-faint);
+    letter-spacing:.5em;
+    font-size:.72rem;
+    writing-mode:vertical-rl;
+    height:120px;
+  }
+  h1.game-title{
+    font-family: var(--font-display);
+    font-weight:800;
+    font-size: clamp(2.4rem, 8vw, 3.8rem);
+    letter-spacing:.08em;
+    margin:0;
+    text-wrap:balance;
+    color: var(--ink);
+    text-shadow: 0 0 28px rgba(193,68,58,.25);
+  }
+  .subtitle{
+    font-family: var(--font-body);
+    color: var(--ink-dim);
+    font-size: 1rem;
+    line-height:1.9;
+    max-width: 34ch;
+    margin:0 auto;
+  }
+  .btn{
+    font-family: var(--font-ui);
+    font-weight:700;
+    font-size: .95rem;
+    letter-spacing:.12em;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+    border: 1px solid var(--line);
+    padding: 14px 40px;
+    cursor:pointer;
+    position:relative;
+    transition: border-color .2s ease, transform .15s ease, background .2s ease;
+  }
+  .btn::before{
+    content:"";
+    position:absolute; inset:3px;
+    border: 1px solid rgba(166,130,63,.25);
+    pointer-events:none;
+  }
+  .btn:hover{ border-color: var(--gold); background: linear-gradient(180deg, var(--bg-card-hover), var(--bg-card)); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--accent-bright); outline-offset:3px; }
+  .btn[disabled]{ opacity:.35; cursor:not-allowed; }
+  .btn.primary{ border-color: var(--gold); color: var(--gold); }
+
+  /* ---------- Game screen ---------- */
+  #screen-game{ display:none; }
+  #screen-game.active{ display:block; }
+
+  .game-header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px; margin-bottom:28px;
+    gap:12px; flex-wrap:wrap;
+  }
+  .game-header h2{
+    font-family: var(--font-display);
+    font-weight:700; font-size:1.3rem; letter-spacing:.14em; margin:0;
+    color: var(--ink);
+  }
+  .game-header .clock{
+    font-family: var(--font-ui);
+    color: var(--ink-faint);
+    font-size:.78rem; letter-spacing:.14em;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 28px;
+    align-items:start;
+  }
+  @media (max-width: 780px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+
+  .room-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:14px;
+  }
+  @media (min-width: 560px){
+    .room-grid{ grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .hotspot{
+    font-family: var(--font-ui);
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 20px 12px 14px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    cursor:pointer;
+    text-align:center;
+    transition: border-color .2s ease, background .2s ease, color .2s ease;
+    min-height:118px;
+  }
+  .hotspot:hover{ background: var(--bg-card-hover); border-color: var(--ink-faint); color: var(--ink); }
+  .hotspot:focus-visible{ outline:2px solid var(--accent-bright); outline-offset:2px; }
+  .hotspot.is-active{ border-color: var(--gold); color: var(--ink); box-shadow: 0 0 0 1px rgba(166,130,63,.25) inset; }
+  .hotspot.exit{ border-color: rgba(138,38,32,.5); }
+  .hotspot.exit:hover{ border-color: var(--accent-bright); }
+  .hotspot svg{ width:34px; height:34px; stroke: currentColor; }
+  .hotspot span{ font-size:.82rem; letter-spacing:.08em; line-height:1.4; }
+
+  .panel{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 22px 22px 20px;
+    display:flex; flex-direction:column;
+    min-height: 360px;
+  }
+  .panel h3{
+    font-family: var(--font-display);
+    font-size:1.02rem; font-weight:600; letter-spacing:.1em;
+    margin:0 0 12px;
+    color: var(--gold);
+    border-bottom:1px solid var(--line-soft);
+    padding-bottom:10px;
+  }
+  #log{
+    flex:1;
+    overflow-y:auto;
+    max-height: 320px;
+    display:flex; flex-direction:column; gap:12px;
+    padding-right:4px;
+  }
+  #log p{
+    margin:0;
+    font-size:.95rem;
+    line-height:1.85;
+    color: var(--ink-dim);
+  }
+  #log p:last-child{ color: var(--ink); }
+  #log p.flavor{ color: var(--ink-faint); font-size:.86rem; font-style:italic; }
+  #log p.clue{ color: var(--gold); }
+
+  #actions{
+    display:flex; flex-wrap:wrap; gap:10px;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line-soft);
+  }
+  #actions:empty{ display:none; }
+  .btn.small{ padding:10px 22px; font-size:.82rem; }
+
+  .inventory{
+    display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;
+  }
+  .inventory .item{
+    display:flex; align-items:center; gap:8px;
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    padding:8px 14px;
+    font-family: var(--font-ui);
+    font-size:.78rem; color: var(--ink-dim); letter-spacing:.05em;
+  }
+  .inventory .item svg{ width:18px; height:18px; stroke:var(--gold); }
+  .inventory:empty::after{
+    content:"持ち物はまだない";
+    font-family: var(--font-ui);
+    font-size:.78rem; color:var(--ink-faint);
+  }
+
+  /* dial lock */
+  .dial{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    margin: 6px 0 4px;
+  }
+  .dial.shake{ animation: shake .4s ease; }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-6px); }
+    40%{ transform:translateX(6px); }
+    60%{ transform:translateX(-4px); }
+    80%{ transform:translateX(4px); }
+  }
+  .dial-col{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .dial-btn{
+    width:34px; height:28px;
+    background:var(--bg-card); border:1px solid var(--line); color:var(--ink-dim);
+    cursor:pointer; font-family:var(--font-ui); font-size:.85rem;
+  }
+  .dial-btn:hover{ color:var(--ink); border-color:var(--gold); }
+  .dial-digit{
+    font-family: var(--font-display);
+    font-size:1.9rem; width:48px; text-align:center;
+    color: var(--ink); border:1px solid var(--line-soft); padding:6px 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Ending screen ---------- */
+  #screen-end{
+    display:none;
+    min-height:100vh;
+    align-items:center; justify-content:center; text-align:center;
+    flex-direction:column; gap:26px;
+    padding:40px 20px;
+    position:relative; z-index:2;
+  }
+  #screen-end.active{ display:flex; }
+  #screen-end h2{
+    font-family: var(--font-display);
+    font-weight:800; font-size:clamp(2rem, 6vw, 2.8rem);
+    letter-spacing:.1em; margin:0; color:var(--accent-bright);
+    text-wrap:balance;
+  }
+  #screen-end p{
+    font-family: var(--font-body);
+    color: var(--ink-dim); line-height:2; max-width:38ch; margin:0 auto;
+    font-size:1rem;
+  }
+
+  .glitch{ animation: glitch .18s linear 2; }
+  @keyframes glitch{
+    0%{ filter:none; transform:translate(0,0); }
+    30%{ filter:invert(1) hue-rotate(30deg); transform:translate(1px,-1px); }
+    60%{ filter:none; transform:translate(-1px,1px); }
+    100%{ filter:none; transform:translate(0,0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .glitch, .dial.shake{ animation:none; }
+  }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); }
+</style>
+
+<div class="lamp-glow"></div>
+
+<section id="screen-title">
+  <div class="title-mark">怪異譚</div>
+  <h1 class="game-title">丑三つの間</h1>
+  <p class="subtitle">目を開けると、そこは知らない和室だった。<br>時計の針は、真夜中の八つ時を指している。</p>
+  <button class="btn primary" id="btn-start">目を、開ける</button>
+</section>
+
+<section id="screen-game">
+  <div class="stage">
+    <div class="game-header">
+      <h2>丑三つの間</h2>
+      <span class="clock" id="clock-text">午前二時三十四分</span>
+    </div>
+
+    <div class="layout">
+      <div class="room-grid" id="room-grid"></div>
+
+      <div class="panel">
+        <h3 id="panel-title">部屋のようす</h3>
+        <div id="log"></div>
+        <div id="actions"></div>
+        <div class="inventory" id="inventory"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screen-end">
+  <div class="title-mark">怪異譚</div>
+  <h2 id="end-title">脱出成功</h2>
+  <p id="end-text"></p>
+  <button class="btn" id="btn-restart">もう一度、目を閉じる</button>
+</section>
+
+<script>
+(function(){
+  "use strict";
+
+  const ICONS = {
+    scroll: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="9" r="2.4"/><circle cx="32" cy="9" r="2.4"/><line x1="16" y1="9" x2="32" y2="9"/><rect x="15" y="11" width="18" height="27" rx="1"/><path d="M19 22 L24 16 L29 22 L25 22 L25 30 L23 30 L23 22 Z" fill="currentColor" stroke="none" opacity=".55"/><circle cx="16" cy="38" r="2.4"/><circle cx="32" cy="38" r="2.4"/><line x1="16" y1="38" x2="32" y2="38"/></svg>',
+    altar: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20 L24 8 L36 20"/><rect x="13" y="20" width="22" height="20" rx="1"/><rect x="17" y="30" width="14" height="8" rx="1"/><circle cx="24" cy="34" r="1.6" fill="currentColor" stroke="none"/><line x1="17" y1="25" x2="31" y2="25"/></svg>',
+    closet: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="30" height="30" rx="1"/><line x1="24" y1="9" x2="24" y2="39"/><circle cx="20" cy="24" r="1.6" fill="currentColor" stroke="none"/><circle cx="28" cy="24" r="1.6" fill="currentColor" stroke="none"/></svg>',
+    tatami: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="22" rx="1"/><rect x="12" y="18" width="24" height="14" rx=".5" opacity=".6"/><line x1="8" y1="14" x2="16" y2="8"/><line x1="16" y1="8" x2="40" y2="8" stroke-dasharray="1 4" opacity=".5"/></svg>',
+    mirror: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="24" cy="19" rx="11" ry="14"/><line x1="24" y1="33" x2="24" y2="40"/><line x1="16" y1="40" x2="32" y2="40"/><path d="M18 10 L28 24 M25 12 L20 26" opacity=".65"/></svg>',
+    door: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="6" width="24" height="36" rx="1"/><line x1="12" y1="16" x2="36" y2="16"/><line x1="12" y1="27" x2="36" y2="27"/><line x1="24" y1="6" x2="24" y2="42"/><circle cx="30" cy="34" r="3.4"/></svg>',
+    key: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="24" r="7"/><line x1="22" y1="24" x2="38" y2="24"/><line x1="32" y1="24" x2="32" y2="30"/><line x1="37" y1="24" x2="37" y2="29"/></svg>',
+    charm: '<svg viewBox="0 0 48 48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="10" width="20" height="26" rx="2"/><line x1="24" y1="4" x2="24" y2="10"/><line x1="18" y1="18" x2="30" y2="18"/><line x1="18" y1="24" x2="30" y2="24"/></svg>'
+  };
+
+  const HOTSPOTS = [
+    { id:'scroll', label:'床の間の掛け軸' },
+    { id:'closet', label:'押入れ' },
+    { id:'altar',  label:'仏壇' },
+    { id:'tatami', label:'畳' },
+    { id:'mirror', label:'鏡台' },
+    { id:'door',   label:'出口の襖', exit:true }
+  ];
+
+  const AMBIENT = [
+    'どこか遠くで、柱時計が時を刻んでいる。',
+    '行灯の灯りが、わずかに揺れた。',
+    '畳の下で、何かがきしんだ気がした。',
+    '障子の向こうを、何かが横切った。',
+    '線香の匂いが、ふっと濃くなった。'
+  ];
+
+  const state = {
+    inventory: [],
+    flags: { closetOpened:false, dollPulled:false, altarOpened:false, tatamiChecked:false, scrollChecked:false, mirrorSeen:false },
+    digits: { d1:null, d2:null, d3:null },
+    dial: [0,0,0],
+    active: null
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const grid = $('#room-grid');
+  const log = $('#log');
+  const actions = $('#actions');
+  const inventoryEl = $('#inventory');
+  const panelTitle = $('#panel-title');
+
+  function buildGrid(){
+    grid.innerHTML = '';
+    HOTSPOTS.forEach(h => {
+      const btn = document.createElement('button');
+      btn.className = 'hotspot' + (h.exit ? ' exit' : '');
+      btn.dataset.id = h.id;
+      btn.innerHTML = ICONS[h.id] + '<span>' + h.label + '</span>';
+      btn.addEventListener('click', () => onHotspot(h));
+      grid.appendChild(btn);
+    });
+  }
+
+  function setActiveCard(id){
+    [...grid.children].forEach(c => c.classList.toggle('is-active', c.dataset.id === id));
+  }
+
+  function addLine(text, cls){
+    const p = document.createElement('p');
+    if (cls) p.className = cls;
+    p.textContent = text;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+    trimLog();
+  }
+
+  function trimLog(){
+    while (log.children.length > 24) log.removeChild(log.firstChild);
+  }
+
+  function clearActions(){ actions.innerHTML = ''; }
+
+  function addAction(label, fn){
+    const b = document.createElement('button');
+    b.className = 'btn small';
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    actions.appendChild(b);
+  }
+
+  function addItem(id, label){
+    if (state.inventory.includes(id)) return;
+    state.inventory.push(id);
+    const chip = document.createElement('div');
+    chip.className = 'item';
+    chip.innerHTML = ICONS[id] + '<span>' + label + '</span>';
+    inventoryEl.appendChild(chip);
+  }
+
+  function onHotspot(h){
+    state.active = h.id;
+    setActiveCard(h.id);
+    clearActions();
+    panelTitle.textContent = h.label;
+
+    switch (h.id) {
+      case 'scroll': return handleScroll();
+      case 'closet': return handleCloset();
+      case 'altar':  return handleAltar();
+      case 'tatami': return handleTatami();
+      case 'mirror': return handleMirror();
+      case 'door':   return handleDoor();
+    }
+  }
+
+  function handleScroll(){
+    if (!state.flags.scrollChecked){
+      addLine('床の間に掛け軸が下がっている。山水画は、ところどころ黄ばんでいた。');
+      addAction('裏側を覗く', () => {
+        state.flags.scrollChecked = true;
+        state.digits.d1 = 3;
+        addLine('裏側に小さな走り書きがあった。', 'flavor');
+        addLine('暗証番号　一桁目：3', 'clue');
+        clearActions();
+      });
+    } else {
+      addLine('掛け軸に、他の仕掛けはなさそうだ。', 'flavor');
+    }
+  }
+
+  function handleCloset(){
+    if (!state.flags.closetOpened){
+      state.flags.closetOpened = true;
+      addLine('襖を開けると、暗い押入れの奥に何かが座っている。よく見ると、古い市松人形だった。');
+      addAction('人形に近づく', () => {
+        addLine('人形の帯に、何か硬いものが縫い付けられている。');
+        clearActions();
+        addAction('帯をほどく', () => {
+          state.flags.dollPulled = true;
+          addLine('中から、小さな鍵が出てきた。', 'flavor');
+          addItem('key', '古びた鍵');
+          clearActions();
+        });
+      });
+    } else if (!state.flags.dollPulled){
+      addLine('人形の帯に、まだ何か縫い付けられている。');
+      addAction('帯をほどく', () => {
+        state.flags.dollPulled = true;
+        addLine('中から、小さな鍵が出てきた。', 'flavor');
+        addItem('key', '古びた鍵');
+        clearActions();
+      });
+    } else {
+      addLine('人形はもう何も持っていない。……人形と、目が合った気がした。', 'flavor');
+    }
+  }
+
+  function handleAltar(){
+    if (state.flags.altarOpened){
+      addLine('引き出しはもう空だ。', 'flavor');
+      return;
+    }
+    addLine('仏壇には古い位牌と線香立て。下の引き出しに、小さな南京錠がかかっている。');
+    if (state.inventory.includes('key')){
+      addAction('鍵で開ける', () => {
+        state.flags.altarOpened = true;
+        state.digits.d3 = 8;
+        addLine('鍵はぴったりと合い、引き出しが開いた。中には黄ばんだメモが一枚。', 'flavor');
+        addLine('暗証番号　三桁目：8', 'clue');
+        addItem('charm', 'お守り');
+        clearActions();
+      });
+    } else {
+      addLine('鍵が必要なようだ。', 'flavor');
+    }
+  }
+
+  function handleTatami(){
+    if (!state.flags.tatamiChecked){
+      addLine('畳が一枚だけ、わずかに浮いている。');
+      addAction('めくってみる', () => {
+        state.flags.tatamiChecked = true;
+        state.digits.d2 = 4;
+        addLine('めくると、床板に古い刻み跡があった。', 'flavor');
+        addLine('暗証番号　二桁目：4', 'clue');
+        clearActions();
+      });
+    } else {
+      addLine('床板には、もう何もなさそうだ。', 'flavor');
+    }
+  }
+
+  function handleMirror(){
+    if (!state.flags.mirrorSeen){
+      state.flags.mirrorSeen = true;
+      addLine('古い鏡台。鏡は斜めにひびが入り、埃をかぶっている。');
+      addAction('鏡を覗き込む', () => {
+        document.body.classList.add('glitch');
+        setTimeout(() => document.body.classList.remove('glitch'), 380);
+        addLine('鏡を覗き込むと、一瞬だけ――自分ではない誰かが、こちらを見ていた気がした。', 'flavor');
+        clearActions();
+      });
+    } else {
+      addLine('もう、あの鏡は覗きたくない。', 'flavor');
+    }
+  }
+
+  function handleDoor(){
+    addLine('襖の脇に、古いダイヤル錠がついている。三桁の数字を合わせるようだ。');
+    clearActions();
+    renderDial();
+  }
+
+  function renderDial(){
+    const wrap = document.createElement('div');
+    wrap.className = 'dial';
+    wrap.id = 'dial';
+
+    state.dial.forEach((val, i) => {
+      const col = document.createElement('div');
+      col.className = 'dial-col';
+
+      const up = document.createElement('button');
+      up.className = 'dial-btn'; up.textContent = '▲';
+      up.setAttribute('aria-label', (i+1) + '桁目を上げる');
+      up.addEventListener('click', () => { state.dial[i] = (state.dial[i] + 1) % 10; digit.textContent = state.dial[i]; });
+
+      const digit = document.createElement('div');
+      digit.className = 'dial-digit';
+      digit.textContent = val;
+
+      const down = document.createElement('button');
+      down.className = 'dial-btn'; down.textContent = '▼';
+      down.setAttribute('aria-label', (i+1) + '桁目を下げる');
+      down.addEventListener('click', () => { state.dial[i] = (state.dial[i] + 9) % 10; digit.textContent = state.dial[i]; });
+
+      col.append(up, digit, down);
+      wrap.appendChild(col);
+    });
+
+    actions.appendChild(wrap);
+
+    const tryBtn = document.createElement('button');
+    tryBtn.className = 'btn small';
+    tryBtn.textContent = '試す';
+    tryBtn.style.marginTop = '14px';
+    tryBtn.addEventListener('click', tryDial);
+    actions.appendChild(tryBtn);
+  }
+
+  function tryDial(){
+    const { d1, d2, d3 } = state.digits;
+    const dialWrap = $('#dial');
+    if (d1 === null || d2 === null || d3 === null){
+      addLine('まだ、何か足りない気がする。', 'flavor');
+      return;
+    }
+    const ok = state.dial[0] === d1 && state.dial[1] === d2 && state.dial[2] === d3;
+    if (ok){
+      goToEnding();
+    } else {
+      dialWrap.classList.remove('shake'); void dialWrap.offsetWidth; dialWrap.classList.add('shake');
+      addLine('かちり、と虚しい音が鳴った。番号が違うようだ。', 'flavor');
+    }
+  }
+
+  function goToEnding(){
+    addLine('ダイヤルが小さく鳴り、襖がすっと開いた。');
+    setTimeout(() => {
+      $('#screen-game').classList.remove('active');
+      const endScreen = $('#screen-end');
+      const endText = $('#end-text');
+      let text = '外は静まり返った廊下だった。振り返らずに、あなたはその部屋を後にした。';
+      if (state.flags.mirrorSeen){
+        text += '\n\n――ただ、鏡の中で笑っていたあの顔だけは、まだ脳裏から離れない。';
+      }
+      endText.textContent = text;
+      endScreen.classList.add('active');
+    }, 900);
+  }
+
+  function ambientTick(){
+    if (!$('#screen-game').classList.contains('active')) return;
+    const line = AMBIENT[Math.floor(Math.random() * AMBIENT.length)];
+    addLine(line, 'flavor');
+  }
+
+  function resetState(){
+    state.inventory = [];
+    state.flags = { closetOpened:false, dollPulled:false, altarOpened:false, tatamiChecked:false, scrollChecked:false, mirrorSeen:false };
+    state.digits = { d1:null, d2:null, d3:null };
+    state.dial = [0,0,0];
+    state.active = null;
+    log.innerHTML = '';
+    inventoryEl.innerHTML = '';
+    clearActions();
+    panelTitle.textContent = '部屋のようす';
+  }
+
+  $('#btn-start').addEventListener('click', () => {
+    $('#screen-title').style.display = 'none';
+    $('#screen-game').classList.add('active');
+    addLine('目を開けると、そこは知らない和室だった。畳の匂いと、線香の残り香がする。');
+    addLine('出口は、恐らくあの襖だけだ。');
+  });
+
+  $('#btn-restart').addEventListener('click', () => {
+    resetState();
+    $('#screen-end').classList.remove('active');
+    $('#screen-title').style.display = 'flex';
+  });
+
+  buildGrid();
+  setInterval(ambientTick, 32000);
+})();
+</script>
