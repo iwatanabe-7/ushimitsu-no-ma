@@ -100,10 +100,13 @@
     spacing = spacing || 0;
     const total = measureSpaced(text, spacing);
     let cx = align === "center" ? x - total / 2 : x;
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = "left"; // positions below are already per-character left edges
     for (const ch of text) {
       ctx.fillText(ch, cx, y);
       cx += ctx.measureText(ch).width + spacing;
     }
+    ctx.textAlign = prevAlign;
     return total;
   }
 
