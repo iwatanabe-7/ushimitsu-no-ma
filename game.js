@@ -247,11 +247,12 @@
     },
   };
 
+  // x,y is the icon's CENTER (all call sites pass a center point)
   function drawIcon(name, x, y, size, color, alpha) {
     const fn = ICONS[name];
     if (!fn) return;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(x - size / 2, y - size / 2);
     const s = size / 48;
     ctx.scale(s, s);
     ctx.strokeStyle = color;
@@ -1248,17 +1249,24 @@
     }
 
     const iconColor = active || hovered ? COLORS.ink : COLORS.inkDim;
-    drawIcon(h.id, x + w / 2, y + 20 + 17, 34, iconColor);
 
+    const iconSize = 34;
+    const iconLabelGap = 10;
+    const labelLineH = 16;
     ctx.font = "12px " + FONT_UI;
+    const lines = wrapText(h.label, w - 12);
+    const contentH = iconSize + iconLabelGap + lines.length * labelLineH;
+    const contentTop = y + (h_ - contentH) / 2;
+
+    drawIcon(h.id, x + w / 2, contentTop + iconSize / 2, iconSize, iconColor);
+
     ctx.fillStyle = iconColor;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    const lines = wrapText(h.label, w - 12);
-    let ty = y + 20 + 34 + 10;
+    let ty = contentTop + iconSize + iconLabelGap;
     for (const line of lines) {
       fillTextSpaced(line, x + w / 2, ty, "center", 1);
-      ty += 16;
+      ty += labelLineH;
     }
     ctx.restore();
 
