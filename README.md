@@ -16,16 +16,26 @@
 
 ## 技術構成
 
-- HTML / CSS / JavaScript のみで実装(フレームワーク・ビルド不要)
-- 外部リソースは Google Fonts (Shippori Mincho / Noto Serif JP / Zen Kaku Gothic New) のみ
+- JavaScript のみで実装(フレームワーク・ビルド不要)。ゲーム画面・UIはすべて `<canvas>` 内に JavaScript で描画しており、`<body>` に UI 用の HTML タグや文字列は含みません。
+- 外部サーバーとの通信は一切行いません(Web フォント等の外部リソース読み込みなし。フォントは OS 標準の明朝体・ゴシック体を使用)。
+- ジャンプスケア演出に使う画像は `assets/ghost.jpg` として別ファイルに保存しており、HTML への埋め込みはありません。
 - GitHub Pages でホスティング
+
+## ファイル構成
+
+```
+index.html        エントリーファイル(<canvas> のみ)
+game.js           ゲームロジック・描画処理
+assets/ghost.jpg  ジャンプスケア用画像
+```
 
 ## ローカルで動かす
 
-`index.html` をブラウザで開くだけで遊べます。
+`index.html` を直接開いても遊べますが、ブラウザによっては `file://` から画像を読み込めない場合があるため、簡易サーバー経由での起動を推奨します。
 
 ```bash
 git clone https://github.com/iwatanabe-7/ushimitsu-no-ma.git
 cd ushimitsu-no-ma
-open index.html
+python3 -m http.server 8000
+# http://localhost:8000/ をブラウザで開く
 ```
